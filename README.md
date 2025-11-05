@@ -1,10 +1,10 @@
 # offlineNeoVim
 
-Offline NeoVim package with **NvChad** pre-installed, including all plugins. This package is delivered as a **Base64 file** for easy copy/paste deployment on offline systems.
+Offline NeoVim package with **NvChad** pre-installed, including all plugins. This package is delivered as a **Base64 file** for easy copy/paste deployment on a offline systems.
 
-## Deployment Instructions
+## Installation guide
 
-1. **Create the Base64 file on the target machine:**
+1. **Create the Base64 file on the target machine via copy and paste:**
 
 ```bash
 cat > nvim-offline-full.b64
@@ -19,7 +19,7 @@ base64 -d nvim-offline-full.b64 > nvim-offline-full.tar.gz
 tar xzf nvim-offline-full.tar.gz -C /home/rfalar
 ```
 
-3. **Make the Neovim AppImage executable:**
+3. **Make the Neovim AppImage executable: (.appimage file name may differ)**
 
 ```bash
 chmod +x /home/rfalar/nvim.appimage
