@@ -12,6 +12,16 @@ cat > nvim-offline-full.b64
 # Press Ctrl+D when done
 ```
 
+If you have multiple parts (e.g., `nvim-offline-full.part-aa`, `nvim-offline-full.part-ab`, …), first reassemble them:
+
+```bash
+cat nvim-offline-full.part-* > nvim-offline-full.b64
+```
+
+This creates the full Base64 file `nvim-offline-full.b64`.
+
+---
+
 2. **Decode and extract the archive:**
 
 ```bash
