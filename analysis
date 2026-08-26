@@ -1,0 +1,491 @@
+########################################################################
+# ICC2 Comprehensive Analysis Report
+#
+# Usage:
+#   source run_final_analysis.tcl
+#
+# Output:
+#   comprehensive_analysis.rpt
+#
+# Optional:
+#   set REPORT_FILE "my_report.rpt"
+#   source run_final_analysis.tcl
+########################################################################
+
+
+#-----------------------------------------------------------------------
+# User-configurable settings
+#-----------------------------------------------------------------------
+
+if {![info exists REPORT_FILE]} {
+    set REPORT_FILE "comprehensive_analysis.rpt"
+}
+
+if {![info exists MAX_TIMING_PATHS]} {
+    set MAX_TIMING_PATHS 50
+}
+
+
+#-----------------------------------------------------------------------
+# Helper: print a section and continue if a command fails
+#
+# Example:
+#
+# report_section "QOR" {
+#     report_qor
+# }
+#-----------------------------------------------------------------------
+
+proc report_section {name command} {
+
+    puts ""
+    puts "################################################################"
+    puts "# $name"
+    puts "################################################################"
+    puts ""
+
+    if {[catch {
+        uplevel 1 $command
+    } result options]} {
+
+        puts "REPORT SECTION FAILED"
+        puts "Reason:"
+        puts $result
+        puts ""
+        puts "Continuing to next section..."
+    }
+
+    puts ""
+    puts "################################################################"
+    puts "# END: $name"
+    puts "################################################################"
+    puts ""
+}
+
+
+#-----------------------------------------------------------------------
+# Helper: try one command
+#-----------------------------------------------------------------------
+
+proc report_try {command} {
+
+    if {[catch {
+        uplevel 1 $command
+    } result]} {
+        puts "WARNING: Command failed:"
+        puts "  $command"
+        puts "Reason:"
+        puts "  $result"
+        puts ""
+    }
+}
+
+
+#-----------------------------------------------------------------------
+# Start report
+#-----------------------------------------------------------------------
+
+redirect -file $REPORT_FILE {
+
+    puts "################################################################"
+    puts "#"
+    puts "# ICC2 COMPREHENSIVE DESIGN ANALYSIS REPORT"
+    puts "#"
+    puts "################################################################"
+    puts ""
+
+    puts "Report file: $REPORT_FILE"
+    puts "Timing paths requested: $MAX_TIMING_PATHS"
+    puts ""
+
+
+    ####################################################################
+    # 01. DESIGN SUMMARY
+    ####################################################################
+
+    report_section "01. DESIGN SUMMARY" {
+
+        puts "========== CURRENT DESIGN =========="
+        report_try {
+            current_design
+        }
+
+        puts "========== DESIGN SUMMARY =========="
+        report_try {
+            report_design
+        }
+
+        puts "========== AREA =========="
+        report_try {
+            report_area
+        }
+
+        puts "========== UTILIZATION =========="
+        report_try {
+            report_utilization
+        }
+
+        puts "========== FLOORPLAN =========="
+        report_try {
+            report_design -floorplan
+        }
+
+        puts "========== BLOCK =========="
+        report_try {
+            report_block
+        }
+    }
+
+
+    ####################################################################
+    # 02. OVERALL QOR
+    ####################################################################
+
+    report_section "02. OVERALL QOR" {
+
+        puts "========== REPORT QOR =========="
+        report_try {
+            report_qor
+        }
+
+        puts "========== AREA =========="
+        report_try {
+            report_area
+        }
+
+        puts "========== UTILIZATION =========="
+        report_try {
+            report_utilization
+        }
+    }
+
+
+    ####################################################################
+    # 03. SETUP TIMING
+    ####################################################################
+
+    report_section "03. SETUP TIMING - WORST PATHS" {
+
+        puts "========== WORST SETUP PATHS =========="
+
+        report_try {
+            report_timing \
+                -delay_type max \
+                -max_paths $MAX_TIMING_PATHS \
+                -path_type full_clock_expanded
+        }
+
+        puts "========== SETUP CONSTRAINT VIOLATORS =========="
+
+        report_try {
+            report_constraint \
+                -max_delay \
+                -all_violators
+        }
+    }
+
+
+    ####################################################################
+    # 04. HOLD TIMING
+    ####################################################################
+
+    report_section "04. HOLD TIMING - WORST PATHS" {
+
+        puts "========== WORST HOLD PATHS =========="
+
+        report_try {
+            report_timing \
+                -delay_type min \
+                -max_paths $MAX_TIMING_PATHS \
+                -path_type full_clock_expanded
+        }
+
+        puts "========== HOLD CONSTRAINT VIOLATORS =========="
+
+        report_try {
+            report_constraint \
+                -min_delay \
+                -all_violators
+        }
+    }
+
+
+    ####################################################################
+    # 05. ELECTRICAL DRC
+    ####################################################################
+
+    report_section "05. ELECTRICAL DRC" {
+
+        puts "========== MAX TRANSITION =========="
+
+        report_try {
+            report_constraint \
+                -max_transition \
+                -all_violators
+        }
+
+        puts "========== MAX CAPACITANCE =========="
+
+        report_try {
+            report_constraint \
+                -max_capacitance \
+                -all_violators
+        }
+
+        puts "========== MAX FANOUT =========="
+
+        report_try {
+            report_constraint \
+                -max_fanout \
+                -all_violators
+        }
+    }
+
+
+    ####################################################################
+    # 06. CLOCK QOR
+    ####################################################################
+
+    report_section "06. CLOCK QOR" {
+
+        puts "========== CLOCK DEFINITIONS =========="
+
+        report_try {
+            report_clocks
+        }
+
+        puts "========== CLOCK QOR =========="
+
+        report_try {
+            report_clock_qor
+        }
+
+        puts "========== CLOCK TIMING =========="
+
+        report_try {
+            report_clock_timing
+        }
+
+        puts "========== CLOCK TRANSITION VIOLATORS =========="
+
+        report_try {
+            report_constraint \
+                -max_transition \
+                -all_violators
+        }
+    }
+
+
+    ####################################################################
+    # 07. POWER
+    ####################################################################
+
+    report_section "07. POWER ANALYSIS" {
+
+        puts "========== POWER SUMMARY =========="
+
+        report_try {
+            report_power
+        }
+
+        puts "========== POWER WITH HIERARCHY =========="
+
+        report_try {
+            report_power -hierarchy
+        }
+
+        puts "========== AREA / POWER CONTEXT =========="
+
+        report_try {
+            report_area
+        }
+    }
+
+
+    ####################################################################
+    # 08. PHYSICAL / PLACEMENT / ROUTING
+    ####################################################################
+
+    report_section "08. PHYSICAL / PLACEMENT / ROUTING" {
+
+        puts "========== UTILIZATION =========="
+
+        report_try {
+            report_utilization
+        }
+
+        puts "========== FLOORPLAN =========="
+
+        report_try {
+            report_design -floorplan
+        }
+
+        puts "========== CONGESTION =========="
+
+        report_try {
+            report_congestion
+        }
+
+        puts "========== ROUTING STATUS =========="
+
+        report_try {
+            report_route_status
+        }
+    }
+
+
+    ####################################################################
+    # 09. PHYSICAL DRC
+    ####################################################################
+
+    report_section "09. PHYSICAL DRC" {
+
+        puts "========== DRC =========="
+
+        report_try {
+            report_drc
+        }
+
+        puts "========== ROUTE STATUS =========="
+
+        report_try {
+            report_route_status
+        }
+
+        puts "========== ROUTING CONGESTION =========="
+
+        report_try {
+            report_congestion
+        }
+    }
+
+
+    ####################################################################
+    # 10. POWER GRID
+    ####################################################################
+
+    report_section "10. POWER GRID" {
+
+        puts "========== PG CONNECTIVITY =========="
+
+        report_try {
+            report_pg_connectivity
+        }
+
+        puts "========== POWER / GROUND NETS =========="
+
+        report_try {
+            report_net -power
+        }
+
+        report_try {
+            report_net -ground
+        }
+
+        puts "========== PG STRATEGIES =========="
+
+        report_try {
+            report_pg_strategy
+        }
+    }
+
+
+    ####################################################################
+    # 11. FINAL CHECKS
+    ####################################################################
+
+    report_section "11. FINAL CHECKS" {
+
+        puts "========== CHECK DESIGN =========="
+
+        report_try {
+            check_design
+        }
+
+        puts "========== CHECK ROUTES =========="
+
+        report_try {
+            check_routes
+        }
+
+        puts "========== CHECK LEGALITY =========="
+
+        report_try {
+            check_legality
+        }
+
+        puts "========== ROUTING STATUS =========="
+
+        report_try {
+            report_route_status
+        }
+    }
+
+
+    ####################################################################
+    # EXTRA: PARASITIC INFORMATION
+    ####################################################################
+
+    report_section "12. PARASITIC / RC INFORMATION" {
+
+        puts "========== PARASITIC PARAMETERS =========="
+
+        report_try {
+            report_parasitic_parameters
+        }
+
+        puts "========== PVT =========="
+
+        report_try {
+            report_pvt
+        }
+    }
+
+
+    ####################################################################
+    # EXTRA: LIBRARY / OPTIMIZATION INFORMATION
+    ####################################################################
+
+    report_section "13. LIBRARY / OPTIMIZATION INFORMATION" {
+
+        puts "========== BUFFER CELLS =========="
+
+        report_try {
+            get_lib_cells -filter "is_buffer == true"
+        }
+
+        puts "========== INVERTER CELLS =========="
+
+        report_try {
+            get_lib_cells -filter "is_inverter == true"
+        }
+
+        puts "========== SEQUENTIAL CELLS =========="
+
+        report_try {
+            get_lib_cells -filter "is_sequential == true"
+        }
+    }
+
+
+    ####################################################################
+    # END OF REPORT
+    ####################################################################
+
+    puts ""
+    puts ""
+    puts "################################################################"
+    puts "#"
+    puts "# END OF ICC2 COMPREHENSIVE ANALYSIS REPORT"
+    puts "#"
+    puts "################################################################"
+    puts ""
+
+}
+
+puts ""
+puts "============================================================"
+puts "ICC2 analysis report complete."
+puts "Output:"
+puts "  $REPORT_FILE"
+puts "============================================================"
